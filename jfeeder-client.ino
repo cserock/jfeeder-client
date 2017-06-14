@@ -77,9 +77,9 @@ void processMeal(){
 //  USE_SERIAL.println(onMeal);
 
   if(onMeal > 0){
-    
+
     isScaleReady = false;
-    
+
     digitalWrite(LED, HIGH);
     yield();
 
@@ -87,21 +87,21 @@ void processMeal(){
       // step motor on
       rotateDeg(-360, .2);
       yield();
-      
+
       onMeal--;
       USE_SERIAL.println(onMeal);
 
-      
+
       weight = getWeight();
       yield();
-      
+
       USE_SERIAL.print("weight : ");
       USE_SERIAL.println(weight);
 
-      if(weight > maxWeight){      
+      if(weight > maxWeight){
         onMeal = 0;
       }
-        
+
       if(onMeal == 0){
 
         USE_SERIAL.print("cmdSet - onMeal : ");
@@ -114,8 +114,8 @@ void processMeal(){
         cmdSet(dataSet, dataCount);
       }
     }
-    
-      
+
+
   } else {
     digitalWrite(LED, LOW);
     yield();
@@ -125,9 +125,9 @@ void processMeal(){
 
 
 void parseData (String text){
-  
+
     USE_SERIAL.println(text);
-    
+
     JsonObject& root = jsonBuffer.parseObject(text);
 
     if (root.success()){
@@ -163,21 +163,21 @@ String setSendData (int cmd, DataSet dataSet[], int dataCount){
 
   String output;
   root.printTo(output);
-  return output;  
+  return output;
 }
 
 
 void cmdGet(){
-  
+
   int dataCount = 0;
   DataSet dataSet[0];
-             
+
   String sendData = setSendData(CMD_GET, dataSet, dataCount);
-  webSocket.sendTXT(sendData);            
+  webSocket.sendTXT(sendData);
 }
 
 
-void cmdSet(DataSet dataSet[], int dataCount){  
+void cmdSet(DataSet dataSet[], int dataCount){
   String sendData = setSendData(CMD_SET, dataSet, dataCount);
   webSocket.sendTXT(sendData);
 }
@@ -200,7 +200,7 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t lenght) {
         {
             USE_SERIAL.printf("[WSc] get text: %s\n", payload);
             String text = String((char *) &payload[0]);
-    
+
             parseData(text);
             isScaleReady = true;
         }
@@ -221,7 +221,7 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t lenght) {
 void buttonInterrupt(){
   if(!bOnRequest){
     USE_SERIAL.println("button down");
-  
+
     if(onMeal > 0){
       onMeal = 0;
 
@@ -229,17 +229,17 @@ void buttonInterrupt(){
       DataSet dataSet[1] = {
         {"onMeal", onMeal}
       };
-//      bOnRequest = true;     
+//      bOnRequest = true;
       errCount = 0;
       cmdSet(dataSet, dataCount);
-      
+
     } else {
       onMeal = DEFAULT_MEAL_AMOUNT;
     }
-  
+
     USE_SERIAL.print("onMeal : ");
     USE_SERIAL.println(onMeal);
-    
+
   } else {
     USE_SERIAL.println("bOnRequest");
     errCount++;
@@ -262,19 +262,19 @@ void startClient(){
 
 void setup() {
 
-    
-    
+
+
     pinMode(LED, OUTPUT);
-    pinMode(pushButton, INPUT_PULLUP);    
+    pinMode(pushButton, INPUT_PULLUP);
     attachInterrupt(digitalPinToInterrupt(pushButton), buttonInterrupt, FALLING);
 
-    // set step motor    
-    pinMode(DIR_PIN, OUTPUT); 
+    // set step motor
+    pinMode(DIR_PIN, OUTPUT);
     pinMode(STEP_PIN, OUTPUT);
 
     // init variables
     onMeal = 0;
-    
+
     USE_SERIAL.begin(115200);
 
     USE_SERIAL.setDebugOutput(true);
@@ -290,18 +290,18 @@ void setup() {
           USE_SERIAL.flush();
           delay(1000);
       }
-    
-    
+
+
     /*
     //WiFiManager
     //Local intialization. Once its business is done, there is no need to keep it around
     WiFiManager wifiManager;
     //reset settings - for testing
     wifiManager.resetSettings();
-  
+
     //set callback that gets called when connecting to previous WiFi fails, and enters Access Point mode
     wifiManager.setAPCallback(configModeCallback);
-  
+
     //fetches ssid and pass and tries to connect
     //if it does not connect it starts an access point with the specified name
     //here  "AutoConnectAP"
@@ -311,17 +311,14 @@ void setup() {
       //reset and try again, or maybe put it to deep sleep
       ESP.reset();
       delay(1000);
-    } 
-    
+    }
+
     Serial.println("Wife connected.");
     */
-    
+
     WiFiMulti.addAP("rockk", "7903190319");
 //    WiFiMulti.addAP("rockk_iPhone6", "8111021102");
-
-
 //    WiFiMulti.addAP("SKP1002658MN001", "7903190319");
-  
 
     //WiFi.disconnect();
     while(WiFiMulti.run() != WL_CONNECTED) {
@@ -335,11 +332,11 @@ void setup() {
     // HX711.PD_SCK - D5 : 14
     scale.set_scale(calibrationFactor);
 //    scale.tare();
-    
+
 //    webSocket.begin("mamma.neosave.me", 8081);
 //    webSocket.onEvent(webSocketEvent);
 
-    
+
 }
 
 int getWeight(){
@@ -357,14 +354,14 @@ void checkWeight() {
     weight = getWeight();
     yield();
 
-    if(weight > maxWeight){      
+    if(weight > maxWeight){
         onMeal = 0;
     }
 
     if(oldWeight != weight){
 
       Serial.println("update weight");
-      
+
       oldWeight = weight;
 
       int dataCount = 2;
@@ -374,58 +371,50 @@ void checkWeight() {
       };
       cmdSet(dataSet, dataCount);
     }
-    
 
     delay(5000);
   }
 }
 
 void loop() {
-
-//    rotateDeg(360, .2); 
-//    USE_SERIAL.println("loop");
-//    delay(1000);
-    
- 
   webSocket.loop();
   processMeal();
   checkWeight();
 }
 
-void rotate(int steps, float speed){ 
+void rotate(int steps, float speed){
   //rotate a specific number of microsteps (8 microsteps per step) - (negitive for reverse movement)
   //speed is any number from .01 -> 1 with 1 being fastest - Slower is stronger
   int dir = (steps > 0)? HIGH:LOW;
   steps = abs(steps);
 
-  digitalWrite(DIR_PIN,dir); 
+  digitalWrite(DIR_PIN,dir);
 
   float usDelay = (1/speed) * 70;
 
-  for(int i=0; i < steps; i++){ 
-    digitalWrite(STEP_PIN, HIGH); 
-    delayMicroseconds(usDelay); 
+  for(int i=0; i < steps; i++){
+    digitalWrite(STEP_PIN, HIGH);
+    delayMicroseconds(usDelay);
 
-    digitalWrite(STEP_PIN, LOW); 
-    delayMicroseconds(usDelay); 
-  } 
-} 
+    digitalWrite(STEP_PIN, LOW);
+    delayMicroseconds(usDelay);
+  }
+}
 
-void rotateDeg(float deg, float speed){ 
+void rotateDeg(float deg, float speed){
   //rotate a specific number of degrees (negitive for reverse movement)
   //speed is any number from .01 -> 1 with 1 being fastest - Slower is stronger
   int dir = (deg > 0)? HIGH:LOW;
-  digitalWrite(DIR_PIN,dir); 
+  digitalWrite(DIR_PIN,dir);
 
   int steps = abs(deg)*(1/0.225);
   float usDelay = (1/speed) * 70;
 
-  for(int i=0; i < steps; i++){ 
-    digitalWrite(STEP_PIN, HIGH); 
-    delayMicroseconds(usDelay); 
+  for(int i=0; i < steps; i++){
+    digitalWrite(STEP_PIN, HIGH);
+    delayMicroseconds(usDelay);
 
-    digitalWrite(STEP_PIN, LOW); 
-    delayMicroseconds(usDelay); 
-  } 
+    digitalWrite(STEP_PIN, LOW);
+    delayMicroseconds(usDelay);
+  }
 }
-
